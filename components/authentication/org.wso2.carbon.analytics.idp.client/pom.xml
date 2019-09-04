@@ -137,7 +137,7 @@
             requiredService="org.wso2.carbon.analytics.idp.client.core.spi.IdPClientFactory",
             osgi.service;
             objectClass="org.wso2.carbon.analytics.idp.client.core.spi.IdPClientFactory";
-            serviceCount="2"
+            serviceCount="3"
         </carbon.component>
     </properties>
 </project>
