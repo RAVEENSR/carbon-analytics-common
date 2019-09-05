@@ -34,15 +34,12 @@ public class CustomIdPClientConstants {
     public static final String KM_USERNAME = "kmUsername";
     public static final String KM_PASSWORD = "kmPassword";
     public static final String PORTAL_APP_CONTEXT = "portalAppContext";
-    public static final String STATUS_DB_APP_CONTEXT = "statusDashboardAppContext";
     public static final String BR_DB_APP_CONTEXT = "businessRulesAppContext";
     public static final String SP_CLIENT_ID = "spClientId";
     public static final String PORTAL_CLIENT_ID = "portalClientId";
-    public static final String STATUS_DB_CLIENT_ID = "statusDashboardClientId";
     public static final String BR_DB_CLIENT_ID = "businessRulesClientId";
     public static final String SP_CLIENT_SECRET = "spClientSecret";
     public static final String PORTAL_CLIENT_SECRET = "portalClientSecret";
-    public static final String STATUS_DB_CLIENT_SECRET = "statusDashboardClientSecret";
     public static final String BR_DB_CLIENT_SECRET = "businessRulesClientSecret";
     public static final String CACHE_TIMEOUT = "cacheTimeout";
     public static final String DCR_APP_OWNER = "dcrAppOwner";
@@ -60,7 +57,6 @@ public class CustomIdPClientConstants {
     public static final String DEFAULT_KM_PASSWORD = "admin";
     public static final String DEFAULT_SP_APP_CONTEXT = "sp";
     public static final String DEFAULT_PORTAL_APP_CONTEXT = "portal";
-    public static final String DEFAULT_STATUS_DB_APP_CONTEXT = "monitoring";
     public static final String DEFAULT_BR_DB_APP_CONTEXT = "business-rules";
     public static final String DEFAULT_CACHE_TIMEOUT = "900";
     public static final String DEFAULT_CONNECTION_TIMEOUT = "10000";
@@ -69,14 +65,13 @@ public class CustomIdPClientConstants {
     public static final String SSO_LOGING_ID_TOKEN_TAIL = "?id_token_hint=";
     public static final String POST_LOGOUT_REDIRECT_URI_PHRASE = "&post_logout_redirect_uri=";
 
-    public static final String REMOTE_USER_STORE_MANAGER_SERVICE_ENDPOINT_POSTFIX = "/services" +
-            "/RemoteUserStoreManagerService.RemoteUserStoreManagerServiceHttpsSoap12Endpoint";
-    public static final String OAUTH_ADMIN_SERVICE_ENDPOINT_POSTFIX = "/services/OAuthAdminService" +
-            ".OAuthAdminServiceHttpSoap12Endpoint";
+    public static final String AUTHENTICATION_ADMIN_SERVICE_ENDPOINT_POSTFIX = "/services/AuthenticationAdmin";
+    public static final String REMOTE_USER_STORE_MANAGER_SERVICE_ENDPOINT_POSTFIX
+            = "/services/RemoteUserStoreManagerService";
+    public static final String OAUTH_ADMIN_SERVICE_ENDPOINT_POSTFIX = "/services/OAuthAdminService";
 
     public static final String SP_APP_NAME = "sp";
     public static final String PORTAL_APP_NAME = "sp_portal";
-    public static final String STATUS_DB_APP_NAME = "sp_status_dashboard";
     public static final String BR_DB_APP_NAME = "sp_business_rules";
 
     public static final String INTROSPECTION_URL = "introspectionUrl";

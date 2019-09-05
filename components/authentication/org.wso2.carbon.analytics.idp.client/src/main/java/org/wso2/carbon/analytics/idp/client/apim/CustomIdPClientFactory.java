@@ -17,8 +17,14 @@
  */
 package org.wso2.carbon.analytics.idp.client.apim;
 
+import org.apache.axis2.AxisFault;
 import org.osgi.framework.BundleContext;
-import org.osgi.service.component.annotations.*;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wso2.carbon.analytics.idp.client.core.api.AnalyticsHttpClientBuilderService;
@@ -30,9 +36,11 @@ import org.wso2.carbon.analytics.idp.client.core.utils.config.IdPClientConfigura
 import org.wso2.carbon.analytics.idp.client.external.impl.DCRMServiceStub;
 import org.wso2.carbon.analytics.idp.client.external.impl.OAuth2ServiceStubs;
 import org.wso2.carbon.analytics.idp.client.external.models.OAuthApplicationInfo;
+import org.wso2.carbon.authenticator.stub.LoginAuthenticationExceptionException;
 import org.wso2.carbon.datasource.core.api.DataSourceService;
 import org.wso2.carbon.secvault.SecretRepository;
 
+import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -163,8 +171,6 @@ public class CustomIdPClientFactory implements IdPClientFactory {
 
         String portalAppContext = properties.getOrDefault(CustomIdPClientConstants.PORTAL_APP_CONTEXT,
                 CustomIdPClientConstants.DEFAULT_PORTAL_APP_CONTEXT);
-        String statusAppContext = properties.getOrDefault(CustomIdPClientConstants.STATUS_DB_APP_CONTEXT,
-                CustomIdPClientConstants.DEFAULT_STATUS_DB_APP_CONTEXT);
         String businessAppContext = properties.getOrDefault(CustomIdPClientConstants.BR_DB_APP_CONTEXT,
                 CustomIdPClientConstants.DEFAULT_BR_DB_APP_CONTEXT);
 
@@ -176,10 +182,6 @@ public class CustomIdPClientFactory implements IdPClientFactory {
                 CustomIdPClientConstants.PORTAL_APP_NAME,
                 properties.get(CustomIdPClientConstants.PORTAL_CLIENT_ID),
                 properties.get(CustomIdPClientConstants.PORTAL_CLIENT_SECRET));
-        OAuthApplicationInfo statusOAuthApp = new OAuthApplicationInfo(
-                CustomIdPClientConstants.STATUS_DB_APP_NAME,
-                properties.get(CustomIdPClientConstants.STATUS_DB_CLIENT_ID),
-                properties.get(CustomIdPClientConstants.STATUS_DB_CLIENT_SECRET));
         OAuthApplicationInfo businessOAuthApp = new OAuthApplicationInfo(
                 CustomIdPClientConstants.BR_DB_APP_NAME,
                 properties.get(CustomIdPClientConstants.BR_DB_CLIENT_ID),
@@ -188,7 +190,6 @@ public class CustomIdPClientFactory implements IdPClientFactory {
         Map<String, OAuthApplicationInfo> oAuthAppInfoMap = new HashMap<>();
         oAuthAppInfoMap.put(CustomIdPClientConstants.DEFAULT_SP_APP_CONTEXT, spOAuthApp);
         oAuthAppInfoMap.put(portalAppContext, portalOAuthApp);
-        oAuthAppInfoMap.put(statusAppContext, statusOAuthApp);
         oAuthAppInfoMap.put(businessAppContext, businessOAuthApp);
 
         int cacheTimeout, connectionTimeout, readTimeout;
@@ -216,9 +217,41 @@ public class CustomIdPClientFactory implements IdPClientFactory {
         String targetURIForRedirection = properties.getOrDefault(CustomIdPClientConstants.EXTERNAL_SSO_LOGOUT_URL,
                             CustomIdPClientConstants.DEFAULT_EXTERNAL_SSO_LOGOUT_URL);
 
+        LoginAdminServiceClient login;
+        String session;
+        try {
+            login = new LoginAdminServiceClient(adminServiceBaseUrl);
+            session = login.authenticate(adminServiceUsername, adminServicePassword,adminServiceBaseUrl);
+        } catch (AxisFault axisFault) {
+            throw new IdPClientException("Error occurred while creating Login admin Service Client.",
+                    axisFault.getCause());
+        } catch (RemoteException | LoginAuthenticationExceptionException e) {
+            throw new IdPClientException("Error occurred while authenticating admin user using Login admin Service " +
+                    "Client.", e);
+        }
+
+        RemoteUserStoreManagerServiceClient remoteUserStoreManagerServiceClient;
+        OAuthAdminServiceClient oAuthAdminServiceClient;
+
+        try {
+            remoteUserStoreManagerServiceClient
+                    = new RemoteUserStoreManagerServiceClient(adminServiceBaseUrl, session);
+        } catch (AxisFault axisFault) {
+            throw new IdPClientException("Error occurred while creating Remote User Store Manager Service Client.",
+                    axisFault.getCause());
+        }
+
+        try {
+            oAuthAdminServiceClient
+                    = new OAuthAdminServiceClient(adminServiceBaseUrl, session);
+        } catch (AxisFault axisFault) {
+            throw new IdPClientException("Error occurred while creating OAuth Admin Service Client.",
+                    axisFault.getCause());
+        }
+
         return new CustomIdPClient(baseUrl, kmTokenUrl + CustomIdPClientConstants.AUTHORIZE_POSTFIX, grantType,
                 adminRoleDisplayName, oAuthAppInfoMap, cacheTimeout, dcrAppOwner, dcrmServiceStub,
                 keyManagerServiceStubs, idPClientConfiguration.isSsoEnabled(), targetURIForRedirection,
-                adminServiceUsername, adminServicePassword, adminServiceBaseUrl);
+                remoteUserStoreManagerServiceClient, oAuthAdminServiceClient);
     }
 }
