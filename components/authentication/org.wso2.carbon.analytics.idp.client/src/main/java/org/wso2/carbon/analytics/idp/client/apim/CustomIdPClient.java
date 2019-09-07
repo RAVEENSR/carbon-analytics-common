@@ -179,6 +179,9 @@ public class CustomIdPClient extends ExternalIdPClient {
     private boolean isOAuthApplicationExists(String oAuthAppName) throws IdPClientException {
         try {
             OAuthConsumerAppDTO[] oAuthApps = this.oAuthAdminServiceClient.getAllOAuthApplicationData();
+            if (oAuthApps == null) {
+                return false;
+            }
             for (int i = 0; i < oAuthApps.length; i++) {
                 if (oAuthApps[i].getApplicationName().equalsIgnoreCase(oAuthAppName)) {
                     return true;
