@@ -40,6 +40,8 @@ import org.wso2.carbon.authenticator.stub.LoginAuthenticationExceptionException;
 import org.wso2.carbon.datasource.core.api.DataSourceService;
 import org.wso2.carbon.secvault.SecretRepository;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
@@ -192,6 +194,19 @@ public class CustomIdPClientFactory implements IdPClientFactory {
         oAuthAppInfoMap.put(portalAppContext, portalOAuthApp);
         oAuthAppInfoMap.put(businessAppContext, businessOAuthApp);
 
+        URI uri;
+        try {
+            uri = new URI(adminServiceBaseUrl);
+        } catch (URISyntaxException e) {
+            throw new IdPClientException("Error occurred while creating uri from given admin service base url: "
+                    + adminServiceBaseUrl, e);
+        }
+        String uriHost = uri.getHost();
+        if (uriHost == null) {
+            throw new IdPClientException("Cannot get the uri host for the given admin service base url: "
+                    + adminServiceBaseUrl);
+        }
+
         int cacheTimeout, connectionTimeout, readTimeout;
         try {
             cacheTimeout = Integer.parseInt(properties.getOrDefault(CustomIdPClientConstants.CACHE_TIMEOUT,
@@ -221,7 +236,7 @@ public class CustomIdPClientFactory implements IdPClientFactory {
         String session;
         try {
             login = new LoginAdminServiceClient(adminServiceBaseUrl);
-            session = login.authenticate(adminServiceUsername, adminServicePassword,adminServiceBaseUrl);
+            session = login.authenticate(adminServiceUsername, adminServicePassword, uriHost);
         } catch (AxisFault axisFault) {
             throw new IdPClientException("Error occurred while creating Login admin Service Client.",
                     axisFault.getCause());
