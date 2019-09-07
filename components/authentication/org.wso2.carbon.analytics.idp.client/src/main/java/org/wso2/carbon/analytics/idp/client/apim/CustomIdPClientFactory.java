@@ -198,13 +198,16 @@ public class CustomIdPClientFactory implements IdPClientFactory {
         try {
             uri = new URI(adminServiceBaseUrl);
         } catch (URISyntaxException e) {
-            throw new IdPClientException("Error occurred while creating uri from given admin service base url: "
-                    + adminServiceBaseUrl, e);
+            String error = "Error occurred while creating uri from given admin service base url: "
+                    + adminServiceBaseUrl;
+            LOG.error(error);
+            throw new IdPClientException(error, e);
         }
         String uriHost = uri.getHost();
         if (uriHost == null) {
-            throw new IdPClientException("Cannot get the uri host for the given admin service base url: "
-                    + adminServiceBaseUrl);
+            String error = "Cannot get the uri host for the given admin service base url: " + adminServiceBaseUrl;
+            LOG.error(error);
+            throw new IdPClientException(error);
         }
 
         int cacheTimeout, connectionTimeout, readTimeout;
@@ -216,8 +219,10 @@ public class CustomIdPClientFactory implements IdPClientFactory {
             readTimeout = Integer.parseInt(properties.getOrDefault(CustomIdPClientConstants.READ_TIMEOUT,
                     CustomIdPClientConstants.DEFAULT_READ_TIMEOUT));
         } catch (NumberFormatException e) {
-            throw new IdPClientException("Cache timeout overriding property '" +
-                    properties.get(CustomIdPClientConstants.CACHE_TIMEOUT) + "' is invalid.");
+            String error = "Cache timeout overriding property '" +
+                    properties.get(CustomIdPClientConstants.CACHE_TIMEOUT) + "' is invalid.";
+            LOG.error(error);
+            throw new IdPClientException(error, e);
         }
 
         DCRMServiceStub dcrmServiceStub = this.analyticsHttpClientBuilderService
@@ -238,11 +243,13 @@ public class CustomIdPClientFactory implements IdPClientFactory {
             login = new LoginAdminServiceClient(adminServiceBaseUrl);
             session = login.authenticate(adminServiceUsername, adminServicePassword, uriHost);
         } catch (AxisFault axisFault) {
-            throw new IdPClientException("Error occurred while creating Login admin Service Client.",
-                    axisFault.getCause());
+            String error = "Error occurred while creating Login admin Service Client.";
+            LOG.error(error);
+            throw new IdPClientException(error, axisFault.getCause());
         } catch (RemoteException | LoginAuthenticationExceptionException e) {
-            throw new IdPClientException("Error occurred while authenticating admin user using Login admin Service " +
-                    "Client.", e);
+            String error = "Error occurred while authenticating admin user using Login admin Service Client.";
+            LOG.error(error);
+            throw new IdPClientException(error, e);
         }
 
         RemoteUserStoreManagerServiceClient remoteUserStoreManagerServiceClient;
@@ -252,16 +259,18 @@ public class CustomIdPClientFactory implements IdPClientFactory {
             remoteUserStoreManagerServiceClient
                     = new RemoteUserStoreManagerServiceClient(adminServiceBaseUrl, session);
         } catch (AxisFault axisFault) {
-            throw new IdPClientException("Error occurred while creating Remote User Store Manager Service Client.",
-                    axisFault.getCause());
+            String error = "Error occurred while creating Remote User Store Manager Service Client.";
+            LOG.error(error);
+            throw new IdPClientException(error, axisFault.getCause());
         }
 
         try {
             oAuthAdminServiceClient
                     = new OAuthAdminServiceClient(adminServiceBaseUrl, session);
         } catch (AxisFault axisFault) {
-            throw new IdPClientException("Error occurred while creating OAuth Admin Service Client.",
-                    axisFault.getCause());
+            String error = "Error occurred while creating OAuth Admin Service Client.";
+            LOG.error(error);
+            throw new IdPClientException(error, axisFault.getCause());
         }
 
         return new CustomIdPClient(baseUrl, kmTokenUrl + CustomIdPClientConstants.AUTHORIZE_POSTFIX, grantType,

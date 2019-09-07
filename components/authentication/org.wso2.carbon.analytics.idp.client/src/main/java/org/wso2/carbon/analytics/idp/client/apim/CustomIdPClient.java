@@ -123,7 +123,9 @@ public class CustomIdPClient extends ExternalIdPClient {
             String[] roleNames = this.remoteUserStoreManagerServiceClient.getRoleNames();
             return getRolesFromArray(roleNames);
         } catch (RemoteException | RemoteUserStoreManagerServiceUserStoreExceptionException e) {
-            throw new IdPClientException("Error occurred while getting all the role names.", e);
+            String error = "Error occurred while getting all the role names.";
+            LOG.error(error);
+            throw new IdPClientException(error, e);
         }
     }
 
@@ -135,7 +137,9 @@ public class CustomIdPClient extends ExternalIdPClient {
                 return role;
             }
         }
-        throw new IdPClientException("No admin role found.");
+        String error = "No admin role found.";
+        LOG.error(error);
+        throw new IdPClientException(error);
     }
 
     @Override
@@ -146,7 +150,9 @@ public class CustomIdPClient extends ExternalIdPClient {
             Map<String, String> properties = new HashMap<>();
             return new User(name, properties, roles);
         } catch (RemoteException | RemoteUserStoreManagerServiceUserStoreExceptionException e) {
-            throw new IdPClientException("Error occurred while getting the user.", e);
+            String error = "Error occurred while getting the user.";
+            LOG.error(error);
+            throw new IdPClientException(error, e);
         }
     }
 
@@ -158,7 +164,9 @@ public class CustomIdPClient extends ExternalIdPClient {
      */
     private ArrayList<Role> getRolesFromArray(String[] roleNames) throws IdPClientException {
         if (roleNames.length == 0) {
-            throw new IdPClientException("Cannot get roles from the list as the role list is empty.");
+            String error = "Cannot get roles from the list as the role list is empty.";
+            LOG.error(error);
+            throw new IdPClientException(error);
         }
         ArrayList<Role> roles = new ArrayList<>();
         Role newRole;
@@ -188,7 +196,9 @@ public class CustomIdPClient extends ExternalIdPClient {
                 }
             }
         } catch (RemoteException | OAuthAdminServiceIdentityOAuthAdminException e) {
-            throw new IdPClientException("Error occurred while getting all the OAuth application data.", e);
+            String error = "Error occurred while getting all the OAuth application data.";
+            LOG.error(error);
+            throw new IdPClientException(error, e);
         }
         return false;
     }
@@ -207,11 +217,15 @@ public class CustomIdPClient extends ExternalIdPClient {
             oAuthAppDataMap.put("oauthConsumerKey", oAuthApp.getOauthConsumerKey());
             oAuthAppDataMap.put("oauthConsumerSecret", oAuthApp.getOauthConsumerSecret());
         } catch (RemoteException | OAuthAdminServiceIdentityOAuthAdminException e) {
-            throw new IdPClientException("Error occurred while getting the OAuth application data for the " +
-                    "application name:" + oAuthAppName, e);
+            String error = "Error occurred while getting the OAuth application data for the application name:"
+                    + oAuthAppName;
+            LOG.error(error);
+            throw new IdPClientException(error, e);
         }
         if (oAuthAppDataMap.isEmpty()) {
-            throw new IdPClientException("No OAuth Application data found for the application name: " + oAuthAppName);
+            String error = "No OAuth Application data found for the application name: " + oAuthAppName;
+            LOG.error(error);
+            throw new IdPClientException(error);
         }
         return oAuthAppDataMap;
     }
