@@ -20,7 +20,6 @@ package org.wso2.carbon.analytics.idp.client.apim.dto;
 
 import com.google.gson.annotations.SerializedName;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -61,36 +60,6 @@ public final class DCRClientResponse {
     private Object jsonAppAttribute;
     @SerializedName("jsonString")
     private String jsonString;
-
-//    @SerializedName("client_id")
-//    private String clientId;
-//    @SerializedName("registration_client_uri")
-//    private String registrationClientUri;
-//    @SerializedName("registration_access_token")
-//    private String registrationAccessToken;
-//    @SerializedName("client_id_issued_at")
-//    private String clientIdIssuedAt;
-//    @SerializedName("client_secret")
-//    private String clientSecret;
-//    @SerializedName("client_secret_expires_at")
-//    private String clientSecretExpiresAt;
-//    @SerializedName("client_name")
-//    private String clientName;
-//    @SerializedName("redirect_uris")
-//    private List<String> redirectURIs;
-//    @SerializedName("grant_types")
-//    private List<String> grantTypes;
-//    @SerializedName("token_endpoint_auth_method")
-//    private String tokenEndpointAuthMethod;
-//    @SerializedName("logo_uri")
-//    private String logoUri;
-//    @SerializedName("jwks_uri")
-//    private String jwksUri;
-//    @SerializedName("userinfo_signed_response_alg")
-//    private String userinfoSignedResponseAlg;
-//    @SerializedName("ext_param_owner")
-//    private String extParamOwner;
-
 
     public String getClientId() {
         return clientId;
