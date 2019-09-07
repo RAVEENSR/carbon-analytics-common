@@ -78,12 +78,12 @@ public class CustomIdPClient extends ExternalIdPClient {
 
     public CustomIdPClient(String baseUrl, String authorizeEndpoint, String grantType, String adminRoleDisplayName,
                            Map<String, OAuthApplicationInfo> oAuthAppInfoMap, int cacheTimeout, String kmUserName,
-                           DCRMServiceStub dcrmServiceStub, OAuth2ServiceStubs oAuth2ServiceStubs, boolean isSSOEnabled,
-                           String ssoLogoutURL, RemoteUserStoreManagerServiceClient remoteUserStoreManagerServiceClient,
+                           DCRMServiceStub dcrmServiceStub, OAuth2ServiceStubs oAuth2ServiceStubs,
+                           boolean isSSOEnabled, String ssoLogoutURL,
+                           RemoteUserStoreManagerServiceClient remoteUserStoreManagerServiceClient,
                            OAuthAdminServiceClient oAuthAdminServiceClient) {
-        super(baseUrl,authorizeEndpoint, grantType, null, adminRoleDisplayName, oAuthAppInfoMap, cacheTimeout,
-                null, dcrmServiceStub, oAuth2ServiceStubs, null, null,
-                isSSOEnabled, ssoLogoutURL);
+        super(baseUrl, authorizeEndpoint, grantType, null, adminRoleDisplayName, oAuthAppInfoMap,
+                cacheTimeout, null, dcrmServiceStub, oAuth2ServiceStubs, null, null, isSSOEnabled, ssoLogoutURL);
         this.baseUrl = baseUrl;
         this.oAuthAppInfoMap = oAuthAppInfoMap;
         this.adminRoleDisplayName = adminRoleDisplayName;
@@ -198,11 +198,11 @@ public class CustomIdPClient extends ExternalIdPClient {
      * OAuthAdminService service
      */
     private Map<String, String> getOAuthApplicationData(String oAuthAppName) throws IdPClientException {
-        Map <String, String> oAuthAppDataMap = new HashMap<>();
+        Map<String, String> oAuthAppDataMap = new HashMap<>();
         try {
             OAuthConsumerAppDTO oAuthApp = this.oAuthAdminServiceClient.getOAuthApplicationDataByAppName(oAuthAppName);
             oAuthAppDataMap.put("oauthConsumerKey", oAuthApp.getOauthConsumerKey());
-            oAuthAppDataMap.put("oauthConsumerSecret",oAuthApp.getOauthConsumerSecret());
+            oAuthAppDataMap.put("oauthConsumerSecret", oAuthApp.getOauthConsumerSecret());
         } catch (RemoteException | OAuthAdminServiceIdentityOAuthAdminException e) {
             throw new IdPClientException("Error occurred while getting the OAuth application data for the " +
                     "application name:" + oAuthAppName, e);
@@ -308,8 +308,8 @@ public class CustomIdPClient extends ExternalIdPClient {
     private void registerApplication(String appContext, String clientName, String kmUserName)
             throws IdPClientException {
 
-        if (isOAuthApplicationExists( kmUserName + "_" + clientName)) {
-            Map <String, String> oAuthAppDataMap = getOAuthApplicationData(kmUserName + "_" + clientName);
+        if (isOAuthApplicationExists(kmUserName + "_" + clientName)) {
+            Map<String, String> oAuthAppDataMap = getOAuthApplicationData(kmUserName + "_" + clientName);
             OAuthApplicationInfo oAuthApplicationInfo = new OAuthApplicationInfo(
                     clientName, oAuthAppDataMap.get("oauthConsumerKey"), oAuthAppDataMap.get("oauthConsumerSecret")
             );

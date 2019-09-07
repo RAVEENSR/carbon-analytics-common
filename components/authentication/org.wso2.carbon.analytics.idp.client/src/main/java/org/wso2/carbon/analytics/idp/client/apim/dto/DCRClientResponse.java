@@ -28,7 +28,7 @@ import java.util.Objects;
 public final class DCRClientResponse {
 
     /**
-     * sample message to this method
+     * Sample message to this method.
      * {
      * "clientId":"R8I3wI_OOFf4eWQaBu6Buznoy9ga",
      * "clientName":"admin_abc",
@@ -135,8 +135,12 @@ public final class DCRClientResponse {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DCRClientResponse that = (DCRClientResponse) o;
         return isSaasApplication == that.isSaasApplication &&
                 Objects.equals(clientId, that.clientId) &&

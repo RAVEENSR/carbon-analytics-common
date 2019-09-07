@@ -18,15 +18,20 @@
 package org.wso2.carbon.analytics.idp.client.apim;
 
 import org.apache.axis2.AxisFault;
+import org.apache.axis2.context.ServiceContext;
 import org.apache.axis2.transport.http.HTTPConstants;
 import org.wso2.carbon.authenticator.stub.AuthenticationAdminStub;
 import org.wso2.carbon.authenticator.stub.LoginAuthenticationExceptionException;
 import org.wso2.carbon.authenticator.stub.LogoutAuthenticationExceptionException;
-import org.apache.axis2.context.ServiceContext;
+
 import java.rmi.RemoteException;
 
-import static org.wso2.carbon.analytics.idp.client.apim.CustomIdPClientConstants.AUTHENTICATION_ADMIN_SERVICE_ENDPOINT_POSTFIX;
+import static org.wso2.carbon.analytics.idp.client.apim.CustomIdPClientConstants
+        .AUTHENTICATION_ADMIN_SERVICE_ENDPOINT_POSTFIX;
 
+/**
+ * Client for the Login Admin Service.
+ */
 public class LoginAdminServiceClient {
     private AuthenticationAdminStub authenticationAdminStub;
 

@@ -29,6 +29,9 @@ import java.rmi.RemoteException;
 import static org.apache.axis2.transport.http.HTTPConstants.COOKIE_STRING;
 import static org.wso2.carbon.analytics.idp.client.apim.CustomIdPClientConstants.OAUTH_ADMIN_SERVICE_ENDPOINT_POSTFIX;
 
+/**
+ * Client for the OAuth Admin Service.
+ */
 public class OAuthAdminServiceClient {
   private OAuthAdminServiceStub oAuthAdminServiceStub;
 

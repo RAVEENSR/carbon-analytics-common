@@ -29,6 +29,9 @@ import static org.apache.axis2.transport.http.HTTPConstants.COOKIE_STRING;
 import static org.wso2.carbon.analytics.idp.client.apim.CustomIdPClientConstants
         .REMOTE_USER_STORE_MANAGER_SERVICE_ENDPOINT_POSTFIX;
 
+/**
+ * Client for the Remote User Store Manager Admin Service.
+ */
 public class RemoteUserStoreManagerServiceClient {
   private RemoteUserStoreManagerServiceStub remoteUserStoreManagerServiceStub;
    

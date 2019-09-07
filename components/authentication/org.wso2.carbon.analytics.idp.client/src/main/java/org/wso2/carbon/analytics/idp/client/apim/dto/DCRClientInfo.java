@@ -29,7 +29,7 @@ import java.util.Objects;
 public final class DCRClientInfo {
 
     /**
-     * sample message to this method
+     * Sample message to this method.
      * {
      * "callbackUrl": "www.google.lk",
      * "clientName": "mdm",
@@ -172,7 +172,7 @@ public final class DCRClientInfo {
         return requestUris;
     }
 
-    public void setRequestUris(ArrayList<String>requestUris) {
+    public void setRequestUris(ArrayList<String> requestUris) {
         this.requestUris = requestUris;
     }
 
@@ -244,8 +244,12 @@ public final class DCRClientInfo {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DCRClientInfo that = (DCRClientInfo) o;
         return saasApp == that.saasApp &&
                 Objects.equals(applicationType, that.applicationType) &&
