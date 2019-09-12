@@ -171,7 +171,7 @@ public class CustomIdPClient extends ExternalIdPClient {
         ArrayList<Role> roles = new ArrayList<>();
         Role newRole;
         for (int i = 0; i < roleNames.length; i++) {
-            newRole = new Role(Integer.toString(i), roleNames[i]);
+            newRole = new Role(roleNames[i], roleNames[i]);
             roles.add(newRole);
         }
         return roles;
@@ -324,7 +324,6 @@ public class CustomIdPClient extends ExternalIdPClient {
      */
     private void registerApplication(String appContext, String clientName, String kmUserName)
             throws IdPClientException {
-
         if (isOAuthApplicationExists(kmUserName + "_" + clientName)) {
             Map<String, String> oAuthAppDataMap = getOAuthApplicationData(kmUserName + "_" + clientName);
             OAuthApplicationInfo oAuthApplicationInfo = new OAuthApplicationInfo(
