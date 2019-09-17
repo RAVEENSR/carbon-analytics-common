@@ -34,6 +34,7 @@ import org.wso2.carbon.analytics.idp.client.core.models.User;
 import org.wso2.carbon.analytics.idp.client.core.utils.IdPClientConstants;
 import org.wso2.carbon.analytics.idp.client.external.ExternalIdPClient;
 import org.wso2.carbon.analytics.idp.client.external.dto.OAuth2IntrospectionResponse;
+import org.wso2.carbon.analytics.idp.client.external.dto.OAuth2TokenInfo;
 import org.wso2.carbon.analytics.idp.client.external.impl.DCRMServiceStub;
 import org.wso2.carbon.analytics.idp.client.external.impl.OAuth2ServiceStubs;
 import org.wso2.carbon.analytics.idp.client.external.models.ExternalSession;
@@ -44,10 +45,7 @@ import org.wso2.carbon.um.ws.api.stub.RemoteUserStoreManagerServiceUserStoreExce
 
 import java.io.IOException;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.wso2.carbon.analytics.idp.client.apim.CustomIdPClientConstants.FORWARD_SLASH;
@@ -65,6 +63,8 @@ public class CustomIdPClient extends ExternalIdPClient {
     private DCRMServiceStub dcrmServiceStub;
     private OAuth2ServiceStubs oAuth2ServiceStubs;
     private String kmUserName;
+    private String authorizeEndpoint;
+    private String grantType;
     private String baseUrl;
     private String adminRoleDisplayName;
     private Cache<String, ExternalSession> tokenCache;
@@ -85,6 +85,8 @@ public class CustomIdPClient extends ExternalIdPClient {
         super(baseUrl, authorizeEndpoint, grantType, null, adminRoleDisplayName, oAuthAppInfoMap,
                 cacheTimeout, null, dcrmServiceStub, oAuth2ServiceStubs, null, null, isSSOEnabled, ssoLogoutURL);
         this.baseUrl = baseUrl;
+        this.authorizeEndpoint = authorizeEndpoint;
+        this.grantType = grantType;
         this.oAuthAppInfoMap = oAuthAppInfoMap;
         this.adminRoleDisplayName = adminRoleDisplayName;
         this.kmUserName = kmUserName;
@@ -119,41 +121,105 @@ public class CustomIdPClient extends ExternalIdPClient {
 
     @Override
     public List<Role> getAllRoles() throws IdPClientException {
-        try {
-            String[] roleNames = this.remoteUserStoreManagerServiceClient.getRoleNames();
-            return getRolesFromArray(roleNames);
-        } catch (RemoteException | RemoteUserStoreManagerServiceUserStoreExceptionException e) {
-            String error = "Error occurred while getting all the role names.";
-            LOG.error(error);
-            throw new IdPClientException(error, e);
-        }
+//        try {
+//            String[] roleNames = this.remoteUserStoreManagerServiceClient.getRoleNames();
+//            return getRolesFromArray(roleNames);
+//        } catch (RemoteException | RemoteUserStoreManagerServiceUserStoreExceptionException e) {
+//            String error = "Error occurred while getting all the role names.";
+//            LOG.error(error);
+//            throw new IdPClientException(error, e);
+//        } //openid apim:api_view apim:api_create apim:api_delete apim:api_publish apim:subscribe apim:tier_manage
+        ArrayList<Role> roles = new ArrayList<>();
+        roles.add(new Role("openid", "openid"));
+        roles.add(new Role("apim:api_view", "apim:api_view"));
+        roles.add(new Role("apim:api_create", "apim:api_create"));
+        roles.add(new Role("apim:api_delete", "apim:api_delete"));
+        roles.add(new Role("apim:api_publish", "apim:api_publish"));
+        roles.add(new Role("apim:subscribe", "apim:subscribe"));
+        roles.add(new Role("apim:tier_manage", "apim:tier_manage"));
+        return roles;
     }
 
     @Override
     public Role getAdminRole() throws IdPClientException {
-        List<Role> allRoles = getAllRoles();
-        for (Role role : allRoles) {
-            if (role.getDisplayName().equalsIgnoreCase(this.adminRoleDisplayName)) {
-                return role;
-            }
-        }
-        String error = "No admin role found.";
-        LOG.error(error);
-        throw new IdPClientException(error);
+//        List<Role> allRoles = getAllRoles();
+//        for (Role role : allRoles) {
+//            if (role.getDisplayName().equalsIgnoreCase(this.adminRoleDisplayName)) {
+//                return role;
+//            }
+//        }
+//        String error = "No admin role found.";
+//        LOG.error(error);
+//        throw new IdPClientException(error);
+        return new Role("apim:tier_manage", "apim:tier_manage");
     }
 
     @Override
     public User getUser(String name) throws IdPClientException {
-        try {
-            String[] roleNames = this.remoteUserStoreManagerServiceClient.getRoleListOfUser(name);
-            ArrayList<Role> roles = getRolesFromArray(roleNames);
-            Map<String, String> properties = new HashMap<>();
-            return new User(name, properties, roles);
-        } catch (RemoteException | RemoteUserStoreManagerServiceUserStoreExceptionException e) {
+        ExternalSession session = null;
+        for (ExternalSession externalSession : tokenCache.asMap().values()) {
+            if (externalSession.getUserName().equalsIgnoreCase(name)) {
+                session = externalSession;
+                break;
+            }
+        }
+        if (session == null) {
             String error = "Error occurred while getting the user.";
             LOG.error(error);
-            throw new IdPClientException(error, e);
+            throw new IdPClientException(error);
         }
+        String token = session.getAccessToken();
+        Response response = oAuth2ServiceStubs.getIntrospectionServiceStub()
+                .introspectAccessToken(token);
+
+        if (response == null) {
+            String error = "Error occurred while authenticating token '" + token + "'. Response is null.";
+            LOG.error(error);
+            throw new IdPClientException(error);
+        }
+        try {
+            if (response.status() == 200) {  //200 - OK
+                OAuth2IntrospectionResponse introspectResponse = (OAuth2IntrospectionResponse) new GsonDecoder()
+                        .decode(response, OAuth2IntrospectionResponse.class);
+                if (introspectResponse.isActive()) {
+                    String scopes = introspectResponse.getScope();
+                    String[] scopeList = scopes.split(" ");
+                    ArrayList<Role> roles = getRolesFromArray(scopeList);
+                    Map<String, String> properties = new HashMap<>();
+                    return new User(name, properties, roles);
+                } else {
+                    throw new IdPClientException("The token is not active");
+                }
+            } else if (response.status() == 400) {  //400 - Known Error
+                try {
+                    DCRError error = (DCRError) new GsonDecoder().decode(response, DCRError.class);
+                    throw new IdPClientException("Error occurred while introspecting the token. Error: " +
+                            error.getErrorCode() + ". Error Description: " + error.getErrorDescription() +
+                            ". Status Code: " + response.status());
+                } catch (IOException e) {
+                    throw new IdPClientException("Error occurred while parsing the Introspection error message.", e);
+                }
+            } else {  //Unknown Error
+                throw new IdPClientException("Error occurred while authenticating. Error: '" +
+                        response.body().toString() + "'. Status Code: '" + response.status() + "'.");
+            }
+        } catch (IOException e) {
+            throw new IdPClientException("Error occurred while parsing the authentication response.", e);
+        }
+
+
+
+
+        //            String[] roleNames = this.remoteUserStoreManagerServiceClient.getRoleListOfUser(name);
+//            ArrayList<Role> roles = getRolesFromArray(roleNames);
+//        Map<String, String> properties = new HashMap<>();
+//        ArrayList<Role> roles = new ArrayList<>();
+//        if (name.equalsIgnoreCase("admin@carbon.super")) {
+//            roles.add(new Role("apim:app_owner", "apim:app_owner"));
+//        } else {
+//            roles.add(new Role("apim:app_viewer", "apim:app_viewer"));
+//        }
+//        return new User(name, properties, roles);
     }
 
     /**
@@ -233,7 +299,86 @@ public class CustomIdPClient extends ExternalIdPClient {
     @Override
     public Map<String, String> login(Map<String, String> properties) throws IdPClientException {
         this.init(this.kmUserName);
-        return super.login(properties);
+//        return super.login(properties);
+        Map<String, String> returnProperties = new HashMap<>();
+        String grantType = properties.getOrDefault(IdPClientConstants.GRANT_TYPE, this.grantType);
+
+        Response response;
+        String oAuthAppContext = properties.get(IdPClientConstants.APP_NAME);
+
+        //Checking if these are the frontend-if not use sp
+        if (!this.oAuthAppInfoMap.keySet().contains(oAuthAppContext)) {
+            oAuthAppContext = CustomIdPClientConstants.DEFAULT_SP_APP_CONTEXT;
+        }
+
+        String username = properties.get(IdPClientConstants.USERNAME);
+        String scopes = "openid apim:api_view apim:api_create apim:api_delete apim:api_publish apim:subscribe apim:tier_manage"; //TODO: provide a config
+
+        if (IdPClientConstants.AUTHORIZATION_CODE_GRANT_TYPE.equals(grantType)) {
+            String callbackUrl = properties.get(IdPClientConstants.CALLBACK_URL);
+            returnProperties.put(IdPClientConstants.LOGIN_STATUS, IdPClientConstants.LoginStatus.LOGIN_REDIRECTION);
+            returnProperties.put(IdPClientConstants.CLIENT_ID, this.oAuthAppInfoMap.get(oAuthAppContext).getClientId());
+            returnProperties.put(IdPClientConstants.REDIRECTION_URL, this.authorizeEndpoint);
+            returnProperties.put(IdPClientConstants.CALLBACK_URL, this.baseUrl +
+                    CustomIdPClientConstants.CALLBACK_URL + callbackUrl);
+            //returnProperties.put(IdPClientConstants.SCOPE, scopes);
+            return returnProperties;
+        } else if (IdPClientConstants.PASSWORD_GRANT_TYPE.equals(grantType)) {
+            response = oAuth2ServiceStubs.getTokenServiceStub().generatePasswordGrantAccessToken(
+                    username, properties.get(IdPClientConstants.PASSWORD),
+                    properties.get(IdPClientConstants.APP_ID), this.oAuthAppInfoMap.get(oAuthAppContext).getClientId(),
+                    this.oAuthAppInfoMap.get(oAuthAppContext).getClientSecret());
+        } else {
+            response = oAuth2ServiceStubs.getTokenServiceStub().generateRefreshGrantAccessToken(
+                    properties.get(IdPClientConstants.REFRESH_TOKEN), null,
+                    this.oAuthAppInfoMap.get(oAuthAppContext).getClientId(),
+                    this.oAuthAppInfoMap.get(oAuthAppContext).getClientSecret());
+        }
+
+        if (response == null) {
+            String error = "Error occurred while generating an access token for grant type '" +
+                    removeCRLFCharacters(grantType) + "'. Response is null.";
+            LOG.error(error);
+            throw new IdPClientException(error);
+        }
+        if (response.status() == 200) {   //200 - Success
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("A new access token is successfully generated.");
+            }
+            try {
+                OAuth2TokenInfo oAuth2TokenInfo = (OAuth2TokenInfo) new GsonDecoder().decode(response,
+                        OAuth2TokenInfo.class);
+                returnProperties.put(IdPClientConstants.LOGIN_STATUS, IdPClientConstants.LoginStatus.LOGIN_SUCCESS);
+                returnProperties.put(IdPClientConstants.USERNAME, username);
+                returnProperties.put(IdPClientConstants.ACCESS_TOKEN, oAuth2TokenInfo.getAccessToken());
+                returnProperties.put(IdPClientConstants.REFRESH_TOKEN, oAuth2TokenInfo.getRefreshToken());
+                returnProperties.put(IdPClientConstants.VALIDITY_PERIOD,
+                        Long.toString(oAuth2TokenInfo.getExpiresIn()));
+                if (IdPClientConstants.PASSWORD_GRANT_TYPE.equals(grantType)) {
+                    tokenCache.put(oAuth2TokenInfo.getAccessToken(),
+                            new ExternalSession(username, oAuth2TokenInfo.getAccessToken()));
+                }
+                return returnProperties;
+            } catch (IOException e) {
+                String error = "Error occurred while parsing token response for user. Response: '" +
+                        response.body().toString() + "'.";
+                LOG.error(error, e);
+                throw new IdPClientException(error, e);
+            }
+        } else if (response.status() == 401) {
+            String invalidResponse = "Unable to get access token for the request with grant type : '" + grantType +
+                    "', for the user '" + username + "'.";
+            LOG.error(invalidResponse);
+            returnProperties.put(IdPClientConstants.LOGIN_STATUS, IdPClientConstants.LoginStatus.LOGIN_FAILURE);
+            returnProperties.put(IdPClientConstants.ERROR, IdPClientConstants.Error.INVALID_CREDENTIALS);
+            returnProperties.put(IdPClientConstants.ERROR_DESCRIPTION, invalidResponse);
+            return returnProperties;
+        } else {  //Error case
+            String errorMessage = "Token generation request failed. HTTP error code: '" + response.status() +
+                    "'. Error Response: '" + response.body().toString() + "'.";
+            LOG.error(errorMessage);
+            throw new IdPClientException(errorMessage);
+        }
     }
 
     @Override
@@ -252,8 +397,7 @@ public class CustomIdPClient extends ExternalIdPClient {
 
         Map<String, String> returnProperties = new HashMap<>();
         String idToken = properties.getOrDefault(IdPClientConstants.ID_TOKEN_KEY, null);
-        // TODO: Id token null check needs to be removed after all apps support sso
-        if (!isSSOEnabled || idToken == null) {
+        if (!isSSOEnabled || idToken == null) { // TODO: Id token null check needs to be removed after all apps support sso
             returnProperties.put(IdPClientConstants.RETURN_LOGOUT_PROPERTIES, "false");
         } else {
             String postLogoutRedirectUrl = this.baseUrl + FORWARD_SLASH + oAuthAppContext;
@@ -267,6 +411,79 @@ public class CustomIdPClient extends ExternalIdPClient {
             returnProperties.put(CustomIdPClientConstants.EXTERNAL_SSO_LOGOUT_URL, targetURIForRedirection);
         }
         return returnProperties;
+    }
+
+    @Override
+    public Map<String, String> authCodeLogin(String appContext, String code) throws IdPClientException {
+        Map<String, String> returnProperties = new HashMap<>();
+        String oAuthAppContext = appContext.split("/\\|?")[0];
+        if (!this.oAuthAppInfoMap.keySet().contains(oAuthAppContext)) {
+            oAuthAppContext = CustomIdPClientConstants.DEFAULT_SP_APP_CONTEXT;
+        }
+        OAuthApplicationInfo oAuthApplicationInfo = this.oAuthAppInfoMap.get(oAuthAppContext);
+        Response response = oAuth2ServiceStubs.getTokenServiceStub().generateAuthCodeGrantAccessToken(code,
+                this.baseUrl + CustomIdPClientConstants.CALLBACK_URL + oAuthAppContext, null, //TODO: check this
+                oAuthApplicationInfo.getClientId(), oAuthApplicationInfo.getClientSecret());
+        if (response == null) {
+            String error = "Error occurred while generating an access token from code '" + code + "'. " +
+                    "Response is null.";
+            LOG.error(error);
+            throw new IdPClientException(error);
+        }
+        if (response.status() == 200) {   //200 - Success
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("A new access token from code is successfully generated for the code '" + code + "'.");
+            }
+            try {
+                OAuth2TokenInfo oAuth2TokenInfo = (OAuth2TokenInfo) new GsonDecoder().decode(response,
+                        OAuth2TokenInfo.class);
+                returnProperties.put(IdPClientConstants.LOGIN_STATUS, IdPClientConstants.LoginStatus.LOGIN_SUCCESS);
+                returnProperties.put(IdPClientConstants.ACCESS_TOKEN, oAuth2TokenInfo.getAccessToken());
+                returnProperties.put(IdPClientConstants.REFRESH_TOKEN, oAuth2TokenInfo.getRefreshToken());
+                returnProperties.put(IdPClientConstants.ID_TOKEN_KEY, oAuth2TokenInfo.getIdToken());
+                returnProperties.put(IdPClientConstants.VALIDITY_PERIOD,
+                        Long.toString(oAuth2TokenInfo.getExpiresIn()));
+                returnProperties.put(CustomIdPClientConstants.REDIRECT_URL,
+                        this.baseUrl + (this.baseUrl.endsWith("/") ? appContext : "/" + appContext));
+                Response introspectTokenResponse = oAuth2ServiceStubs.getIntrospectionServiceStub()
+                        .introspectAccessToken(oAuth2TokenInfo.getAccessToken());
+                String authUser = null;
+                if (introspectTokenResponse.status() == 200) {   //200 - Success
+                    OAuth2IntrospectionResponse introspectResponse = (OAuth2IntrospectionResponse) new GsonDecoder()
+                            .decode(introspectTokenResponse, OAuth2IntrospectionResponse.class);
+                    authUser = introspectResponse.getUsername();
+                    returnProperties.put(IdPClientConstants.USERNAME, authUser);
+                } else {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Unable to get the username from introspection of the token '" +
+                                oAuth2TokenInfo.getAccessToken() + "'. Response : '" +
+                                introspectTokenResponse.toString());
+                    }
+                }
+                if (authUser != null) {
+                    tokenCache.put(oAuth2TokenInfo.getAccessToken(),
+                            new ExternalSession(authUser, oAuth2TokenInfo.getAccessToken()));
+                }
+                return returnProperties;
+            } catch (IOException e) {
+                String error = "Error occurred while parsing token response. Response : '" +
+                        response.body().toString() + "'";
+                LOG.error(error, e);
+                throw new IdPClientException(error, e);
+            }
+        } else if (response.status() == 401) {
+            String invalidResponse = "Unauthorized user for accessing token form code '" + code + "'. for the app " +
+                    "context, '" + appContext + "'";
+            returnProperties.put(IdPClientConstants.LOGIN_STATUS, IdPClientConstants.LoginStatus.LOGIN_FAILURE);
+            returnProperties.put(IdPClientConstants.ERROR, IdPClientConstants.Error.INVALID_CREDENTIALS);
+            returnProperties.put(IdPClientConstants.ERROR_DESCRIPTION, invalidResponse);
+            return returnProperties;
+        } else {  //Error case
+            String error = "Token generation request failed. HTTP error code: '" + response.status() +
+                    "'. Error Response Body: '" + response.body().toString() + "'.";
+            LOG.error(error);
+            throw new IdPClientException(error);
+        }
     }
 
     @Override
@@ -335,7 +552,7 @@ public class CustomIdPClient extends ExternalIdPClient {
 
         String grantType =
                 IdPClientConstants.PASSWORD_GRANT_TYPE + " " + IdPClientConstants.AUTHORIZATION_CODE_GRANT_TYPE + " " +
-                        IdPClientConstants.REFRESH_GRANT_TYPE;
+                        IdPClientConstants.REFRESH_GRANT_TYPE; //TODO: check here; if sso then surely auth code
         String callBackUrl;
         String postLogoutRedirectUrl = this.baseUrl + FORWARD_SLASH + appContext;
         if (clientName.equals(CustomIdPClientConstants.DEFAULT_SP_APP_CONTEXT)) {
@@ -401,5 +618,12 @@ public class CustomIdPClient extends ExternalIdPClient {
             LOG.error(error);
             throw new IdPClientException(error);
         }
+    }
+
+    private static String removeCRLFCharacters(String str) {
+        if (str != null) {
+            str = str.replace('\n', '_').replace('\r', '_');
+        }
+        return str;
     }
 }

@@ -70,6 +70,8 @@ public class CustomIdPClientConstants {
             = "/services/RemoteUserStoreManagerService";
     public static final String OAUTH_ADMIN_SERVICE_ENDPOINT_POSTFIX = "/services/OAuthAdminService";
 
+    public static final String REDIRECT_URL = "Redirect_Url";
+
     public static final String SP_APP_NAME = "sp";
     public static final String PORTAL_APP_NAME = "sp_portal";
     public static final String BR_DB_APP_NAME = "sp_business_rules";

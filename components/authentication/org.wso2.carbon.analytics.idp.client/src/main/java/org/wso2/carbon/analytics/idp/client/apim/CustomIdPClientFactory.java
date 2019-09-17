@@ -219,7 +219,7 @@ public class CustomIdPClientFactory implements IdPClientFactory {
             readTimeout = Integer.parseInt(properties.getOrDefault(CustomIdPClientConstants.READ_TIMEOUT,
                     CustomIdPClientConstants.DEFAULT_READ_TIMEOUT));
         } catch (NumberFormatException e) {
-            String error = "Cache timeout overriding property '" +
+            String error = "Cache timeout overriding property '" + //TODO: different errors
                     properties.get(CustomIdPClientConstants.CACHE_TIMEOUT) + "' is invalid.";
             LOG.error(error);
             throw new IdPClientException(error, e);
